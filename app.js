@@ -119,6 +119,16 @@ function get_slip(id) {
     });
 }
 
+function get_slips() {
+    const q = datastore.createQuery(SLIPS);
+    return datastore.runQuery(q).then((entities) => {
+        // Use Array.map to call the function fromDatastore. This function
+        // adds id attribute to every element in the array at element 0 of
+        // the variable entities
+        return entities[0].map(fromDatastore);
+    });
+}
+
 /* ------------- End Model Functions -> Slips ------------- */
 
 /* ------------- Begin Controller Functions for Boats ------------- */
@@ -183,6 +193,15 @@ router.delete('/:id', function (req, res) {
 
 /* ------------- End Controller Functions for Boats------------- */
 /* ------------- Begin Controller Functions for Slips ------------- */
+
+router.get('/slips', function (req, res) {
+    console.log("getting the slips")
+    const slips = get_slips()
+        .then((slips) => {
+            slips = appendSelf(slips, req.protocol + '://' + req.get('host') + req.originalUrl + '/');
+            res.status(200).json(slips);
+        });
+});
 
 router.get('/slips/:id', function (req, res) {
     console.log(req.params.id);
