@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+app.set('trust proxy', true);
 
 const { Datastore } = require('@google-cloud/datastore');
 const bodyParser = require('body-parser');
@@ -18,11 +19,14 @@ function fromDatastore(item) {
     return item;
 }
 
-/* ------------- Begin Lodging Model Functions ------------- */
+/* ------------- Begin Lodging Model Functions -> Boats ------------- */
 function post_boat(name, type, length) {
     var key = datastore.key(BOATS);
     const new_boat = { "name": name, "type": type, "length": length };
-    return datastore.save({ "key": key, "data": new_boat }).then(() => { return key });
+    return datastore.save({ "key": key, "data": new_boat }).then(() => { 
+        new_boat.id = key.id
+        return new_boat 
+    });
 }
 
 /**
@@ -56,6 +60,7 @@ function get_boats() {
 function get_boat(id) {
     const key = datastore.key([BOATS, parseInt(id, 10)]);
     return datastore.get(key).then((entity) => {
+        console.log(entity);
         if (entity[0] === undefined || entity[0] === null) {
             // No entity found. Don't try to add the id attribute
             return entity;
@@ -78,23 +83,66 @@ function delete_boat(id) {
     return datastore.delete(key);
 }
 
-/* ------------- End Model Functions ------------- */
+/* ------------- End Model Functions -> Boats ------------- */
 
-/* ------------- Begin Controller Functions ------------- */
+/* ------------- Begin Lodging Model Functions -> Slips ------------- */
+
+function post_slip(number) {
+    var key = datastore.key(SLIPS);
+    const new_slip = { "number": number, "current_boat": null};
+    return datastore.save({ "key": key, "data": new_slip }).then(() => { 
+        new_slip.id = key.id
+        //console.log("post_slip: " + new_slip)
+        return new_slip 
+    });
+}
+
+/* ------------- End Model Functions -> Slips ------------- */
+
+/* ------------- Begin Controller Functions for Boats ------------- */
 
 router.get('/', function (req, res) {
+    console.log("getting the boats")
     const boats = get_boats()
         .then((boats) => {
             res.status(200).json(boats);
         });
 });
 
-router.post('/', function (req, res) {
-    post_boat(req.body.name, req.body.type, req.body.length)
-        .then(key => { res.status(200).send('{ "id": ' + key.id + ' }') });
+router.get('/boats/:id', function (req, res) {
+    console.log(req.params.id);
+    get_boat(req.params.id)
+        .then(boat => {
+            if (boat[0] === undefined || boat[0] === null) {
+                // The 0th element is undefined. This means there is no lodging with this id
+                res.status(404).json({ 'Error': 'No boat with this boat_id exists' });
+            } else {
+                boat = boat[0];
+                boat.self = req.protocol + '://' + req.get('host') + req.originalUrl;
+                res.status(200).json(boat);
+            }
+        });
 });
 
+
+router.post('/boats', function (req, res) {
+    console.log("posting the boats")     
+    if (req.body.name == null || req.body.type == null || req.body.length == null){
+        res.status(400).send('{"Error": "The request object is missing at least one of the required attributes"}')
+    }
+    else{
+        post_boat(req.body.name, req.body.type, req.body.length)
+            .then(key => {
+                //var findURL = req.protocol + '://' + req.get('host') + req.originalUrl + '/' + key.id;
+                //console.log(findURL);
+                //append self and complete URL
+                key.self = req.protocol + '://' + req.get('host') + req.originalUrl + '/' + key.id;
+                console.log(key);
+                res.status(201).send(key) });
+}});
+
 router.put('/:id', function (req, res) {
+    console.log("putting the boats")
     put_boat(req.params.id, req.body.name, req.body.type, req.body.length)
         .then(res.status(200).end());
 });
@@ -107,22 +155,32 @@ router.delete('/:id', function (req, res) {
  * get a single lodging from Datastore using the provided id and also how to 
  * determine when no lodging exists with that ID.
  */
-router.get('/:id', function (req, res) {
-    get_boat(req.params.id)
-        .then(boat => {
-            if (boat[0] === undefined || boat[0] === null) {
-                // The 0th element is undefined. This means there is no lodging with this id
-                res.status(404).json({ 'Error': 'No lodding exists with this id' });
-            } else {
-                // Return the 0th element which is the lodging with this id
-                res.status(200).json(boat[0]);
-            }
-        });
-});
 
-/* ------------- End Controller Functions ------------- */
 
-app.use('/boats', router);
+/* ------------- End Controller Functions for Boats------------- */
+/* ------------- Begin Controller Functions for Slips ------------- */
+
+router.post('/slips', function (req, res) {
+    console.log("posting the slips")     
+    if (req.body.number == null){
+        res.status(400).send('{"Error": "The request object is missing the required number"}')
+    }
+    else{
+        post_slip(req.body.number)
+            .then(key => {
+                //var findURL = req.protocol + '://' + req.get('host') + req.originalUrl + '/' + key.id;
+                //console.log(findURL);
+                //append self and complete URL
+                key.self = req.protocol + '://' + req.get('host') + req.originalUrl + '/' + key.id;
+                console.log(key);
+                res.status(201).send(key) });
+}});
+
+/* ------------- Begin Controller Functions for Slips ------------- */
+
+app.use('/', router);
+
+
 
 // Listen to the App Engine-specified port, or 8080 otherwise
 const PORT = process.env.PORT || 8080;
