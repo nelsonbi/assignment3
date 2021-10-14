@@ -19,6 +19,13 @@ function fromDatastore(item) {
     return item;
 }
 
+function appendSelf(array, url){
+    for (var i = 0; i < array.length; i++){
+        array[i].self = url + array[i].id
+    }
+    return array;
+}
+
 /* ------------- Begin Lodging Model Functions -> Boats ------------- */
 function post_boat(name, type, length) {
     var key = datastore.key(BOATS);
@@ -116,10 +123,11 @@ function get_slip(id) {
 
 /* ------------- Begin Controller Functions for Boats ------------- */
 
-router.get('/', function (req, res) {
+router.get('/boats', function (req, res) {
     console.log("getting the boats")
     const boats = get_boats()
         .then((boats) => {
+            boats = appendSelf(boats, req.protocol + '://' + req.get('host') + req.originalUrl + '/');
             res.status(200).json(boats);
         });
 });
