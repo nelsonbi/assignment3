@@ -97,6 +97,21 @@ function post_slip(number) {
     });
 }
 
+function get_slip(id) {
+    const key = datastore.key([SLIPS, parseInt(id, 10)]);
+    return datastore.get(key).then((entity) => {
+        console.log(entity);
+        if (entity[0] === undefined || entity[0] === null) {
+            // No entity found. Don't try to add the id attribute
+            return entity;
+        } else {
+            // Use Array.map to call the function fromDatastore. This function
+            // adds id attribute to every element in the array entity
+            return entity.map(fromDatastore);
+        }
+    });
+}
+
 /* ------------- End Model Functions -> Slips ------------- */
 
 /* ------------- Begin Controller Functions for Boats ------------- */
@@ -123,6 +138,7 @@ router.get('/boats/:id', function (req, res) {
             }
         });
 });
+
 
 
 router.post('/boats', function (req, res) {
@@ -159,6 +175,21 @@ router.delete('/:id', function (req, res) {
 
 /* ------------- End Controller Functions for Boats------------- */
 /* ------------- Begin Controller Functions for Slips ------------- */
+
+router.get('/slips/:id', function (req, res) {
+    console.log(req.params.id);
+    get_slip(req.params.id)
+        .then(slip => {
+            if (slip[0] === undefined || slip[0] === null) {
+                // The 0th element is undefined. This means there is no lodging with this id
+                res.status(404).json({ 'Error': 'No slip with this slip_id exists' });
+            } else {
+                slip = slip[0];
+                slip.self = req.protocol + '://' + req.get('host') + req.originalUrl;
+                res.status(200).json(slip);
+            }
+        });
+});
 
 router.post('/slips', function (req, res) {
     console.log("posting the slips")     
