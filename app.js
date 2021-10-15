@@ -79,6 +79,25 @@ function get_boat(id) {
     });
 }
 
+function patch_boat(id, data) {
+    const key = datastore.key([BOATS, parseInt(id, 10)]);
+    return datastore.get(key).then((entity) => {
+        console.log(entity);
+        if (entity[0] === undefined || entity[0] === null) {
+            // No entity found. Don't try to add the id attribute
+            console.log("we are iffing " + entity);
+            return entity[0];
+        } else {
+            const patch_boat = { "name": data.name, "type": data.type, "length": data.length };
+            return datastore.update({ "key": key, "data": patch_boat }).then(() => { 
+            patch_boat.id = key.id
+            console.log(patch_boat)
+            return patch_boat 
+            });             
+        };
+    });
+};
+
 function put_boat(id, name, type, length) {
     const key = datastore.key([BOATS, parseInt(id, 10)]);
     const boat = { "name": name, "type": type, "length": length };
@@ -86,6 +105,7 @@ function put_boat(id, name, type, length) {
 }
 
 function delete_boat(id) {
+    
     const key = datastore.key([BOATS, parseInt(id, 10)]);
     return datastore.delete(key);
 }
@@ -143,7 +163,6 @@ router.get('/boats', function (req, res) {
 });
 
 router.get('/boats/:id', function (req, res) {
-    console.log(req.params.id);
     get_boat(req.params.id)
         .then(boat => {
             if (boat[0] === undefined || boat[0] === null) {
@@ -173,6 +192,25 @@ router.post('/boats', function (req, res) {
                 key.self = req.protocol + '://' + req.get('host') + req.originalUrl + '/' + key.id;
                 console.log(key);
                 res.status(201).send(key) });
+}});
+
+router.patch('/boats/:id', function (req, res) {
+    console.log("patching the boats")     
+    if (req.body.name == null || req.body.type == null || req.body.length == null){
+        res.status(400).send('{"Error": "The request object is missing at least one of the required attributes"}')
+    }
+    else{
+        patch_boat(req.params.id, req.body)
+            .then(boat => {
+                console.log(boat)
+                if (boat === undefined || boat === null) {
+                    // The 0th element is undefined. This means there is no lodging with this id
+                    res.status(404).json({ 'Error': 'No boat with this boat_id exists' });
+                } else {
+                    boat.self = req.protocol + '://' + req.get('host') + req.originalUrl;
+                    res.status(200).json(boat);
+                }
+            });
 }});
 
 router.put('/:id', function (req, res) {
