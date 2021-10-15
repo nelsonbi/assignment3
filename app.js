@@ -200,6 +200,39 @@ function slip_parkingEnter(slip_id, boat_id) {
     });
 }
 
+function depart_slip(slip_id, boat_id) {
+    console.log("DEPARTING IN 5 4 3 2 1...");
+    return get_slip(slip_id).then((slip) => {
+        console.log(boat_id)
+        console.log("located in number 1")
+        if (slip[0] === undefined ){
+            console.log("located in number 2 - THE SLIP DOES NOT EXIST")
+            return slip[0]
+        }
+        else if(slip[0].current_boat !== boat_id){
+            console.log("located in number 3 - THE WRONG BOAT IS TRYING TO LEAVE")
+            return "Occupied"
+        }
+        else{
+            console.log("located in number 4")
+            return get_boat(boat_id).then((boat) => {
+                if (boat[0]=== undefined || boat[0] === null){
+                    console.log("The boat does not exist");
+                    return boat[0];
+                }
+                else {
+                    console.log("located in number 5")
+                    const key = datastore.key([SLIPS, parseInt(slip[0].id, 10)]);
+                    data = {"current_boat": null, "number": slip[0].number}
+                    datastore.save({"key": key, "data": data });
+                    console.log("THE SHIP HAS SAILED!!!!")
+                    return "Available"
+                }
+            });
+        }
+    });
+}
+
 /* ------------- End Model Functions -> Slips ------------- */
 
 /* ------------- Begin Controller Functions for Boats ------------- */
@@ -358,6 +391,24 @@ router.put('/slips/:slip_id/:boat_id', function (req, res){
 });
 
 
+
+router.delete('/slips/:slip_id/:boat_id', function (req, res){
+    console.log("Let's get the boat out!!");
+    depart_slip(req.params.slip_id, req.params.boat_id)
+    .then((parking) => {
+        console.log(parking);
+        if (parking === "Occupied"){
+            res.status(404).json({ 'Error': 'No boat with this boat_id is at the slip with this slip_id' });
+        }
+        else if (parking === undefined){
+            res.status(404).json({ 'Error': 'No boat with this boat_id is at the slip with this slip_id' });
+        }
+        else{
+            res.status(204).end();
+        }
+    });
+
+});
 
 /* ------------- Begin Controller Functions for Slips ------------- */
 
