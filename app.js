@@ -173,7 +173,6 @@ function slip_parkingEnter(slip_id, boat_id) {
     console.log("in parking");
     return get_slip(slip_id).then((slip) => {
         console.log("located in number 1")
-        console.log(slip[0].current_boat);
         if (slip[0] === undefined ){
             console.log("located in number 2")
             return slip[0]
@@ -200,7 +199,6 @@ function slip_parkingEnter(slip_id, boat_id) {
         }
     });
 }
-
 
 /* ------------- End Model Functions -> Slips ------------- */
 
@@ -347,10 +345,10 @@ router.put('/slips/:slip_id/:boat_id', function (req, res){
     .then((parking) => {
         console.log(parking);
         if (parking === "Occupied"){
-            res.status(40).json({ 'Error': 'The slip is not empty' });
+            res.status(403).json({ 'Error': 'The slip is not empty' });
         }
         else if (parking === undefined){
-            res.status(404).json({ 'Error': 'The specified boat and/or slip does not exis' });
+            res.status(404).json({ 'Error': 'The specified boat and/or slip does not exist' });
         }
         else{
             res.status(204).end();
