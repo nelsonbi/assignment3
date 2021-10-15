@@ -67,7 +67,7 @@ function get_boats() {
 function get_boat(id) {
     const key = datastore.key([BOATS, parseInt(id, 10)]);
     return datastore.get(key).then((entity) => {
-        console.log(entity);
+        //console.log(entity);
         if (entity[0] === undefined || entity[0] === null) {
             // No entity found. Don't try to add the id attribute
             return entity;
@@ -134,7 +134,7 @@ function post_slip(number) {
 function get_slip(id) {
     const key = datastore.key([SLIPS, parseInt(id, 10)]);
     return datastore.get(key).then((entity) => {
-        console.log(entity);
+        //console.log(entity);
         if (entity[0] === undefined || entity[0] === null) {
             // No entity found. Don't try to add the id attribute
             return entity;
@@ -168,6 +168,39 @@ function delete_slip(id) {
         };
     });
 }
+
+function slip_parkingEnter(slip_id, boat_id) {
+    console.log("in parking");
+    return get_slip(slip_id).then((slip) => {
+        console.log("located in number 1")
+        console.log(slip[0].current_boat);
+        if (slip[0] === undefined ){
+            console.log("located in number 2")
+            return slip[0]
+        }
+        else if(slip[0].current_boat !== null){
+            console.log("located in number 3")
+            return "Occupied"
+        }
+        else{
+            console.log("located in number 4")
+            return get_boat(boat_id).then((boat) => {
+                if (boat[0]=== undefined || boat[0] === null){
+                    console.log("The boat does not exist");
+                    return boat[0];
+                }
+                else {
+                    console.log("located in number 5")
+                    const key = datastore.key([SLIPS, parseInt(slip[0].id, 10)]);
+                    data = {"current_boat": boat[0].id, "number": slip[0].number}
+                    datastore.save({"key": key, "data": data });
+                    return "Available"
+                }
+            });
+        }
+    });
+}
+
 
 /* ------------- End Model Functions -> Slips ------------- */
 
@@ -307,6 +340,26 @@ router.delete('/slips/:id', function (req, res) {
         }
     });
 });
+
+router.put('/slips/:slip_id/:boat_id', function (req, res){
+    console.log(req.params);
+    slip_parkingEnter(req.params.slip_id, req.params.boat_id)
+    .then((parking) => {
+        console.log(parking);
+        if (parking === "Occupied"){
+            res.status(40).json({ 'Error': 'The slip is not empty' });
+        }
+        else if (parking === undefined){
+            res.status(404).json({ 'Error': 'The specified boat and/or slip does not exis' });
+        }
+        else{
+            res.status(204).end();
+        }
+    });
+
+});
+
+
 
 /* ------------- Begin Controller Functions for Slips ------------- */
 
