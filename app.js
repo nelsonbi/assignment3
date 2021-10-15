@@ -104,10 +104,17 @@ function put_boat(id, name, type, length) {
     return datastore.save({ "key": key, "data": boat });
 }
 
-function delete_boat(id) {
-    
+function delete_boat(id) {    
     const key = datastore.key([BOATS, parseInt(id, 10)]);
-    return datastore.delete(key);
+    return datastore.get(key).then((entity) => {
+        if (entity[0] === undefined || entity[0] === null) {
+            // No entity found. Don't try to add the id attribute
+            console.log("we are iffing " + entity);
+            return entity[0];
+        } else {
+            return datastore.delete(key);          
+        };
+    });
 }
 
 /* ------------- End Model Functions -> Boats ------------- */
@@ -146,6 +153,19 @@ function get_slips() {
         // adds id attribute to every element in the array at element 0 of
         // the variable entities
         return entities[0].map(fromDatastore);
+    });
+}
+
+function delete_slip(id) {    
+    const key = datastore.key([SLIPS, parseInt(id, 10)]);
+    return datastore.get(key).then((entity) => {
+        if (entity[0] === undefined || entity[0] === null) {
+            // No entity found. Don't try to add the id attribute
+            console.log("we are iffing " + entity);
+            return entity[0];
+        } else {
+            return datastore.delete(key);          
+        };
     });
 }
 
@@ -219,15 +239,18 @@ router.put('/:id', function (req, res) {
         .then(res.status(200).end());
 });
 
-router.delete('/:id', function (req, res) {
-    delete_boat(req.params.id).then(res.status(200).end())
-});delete_boat
-/**
- * This route is not in the file discussed in the video. It demonstrates how to
- * get a single lodging from Datastore using the provided id and also how to 
- * determine when no lodging exists with that ID.
- */
-
+router.delete('/boats/:id', function (req, res) {
+    delete_boat(req.params.id)
+    .then(boat => {
+        console.log(boat)
+        if (boat === undefined || boat === null) {
+            // The 0th element is undefined. This means there is no lodging with this id
+            res.status(404).json({ 'Error': 'No boat with this boat_id exists' });
+        } else {
+            res.status(204).end();
+        }
+    });
+});
 
 /* ------------- End Controller Functions for Boats------------- */
 /* ------------- Begin Controller Functions for Slips ------------- */
@@ -271,6 +294,19 @@ router.post('/slips', function (req, res) {
                 console.log(key);
                 res.status(201).send(key) });
 }});
+
+router.delete('/slips/:id', function (req, res) {
+    delete_slip(req.params.id)
+    .then(slip => {
+        console.log(slip)
+        if (slip === undefined || slip === null) {
+            // The 0th element is undefined. This means there is no lodging with this id
+            res.status(404).json({ 'Error': 'No slip with this slip_id exists' });
+        } else {
+            res.status(204).end();
+        }
+    });
+});
 
 /* ------------- Begin Controller Functions for Slips ------------- */
 
